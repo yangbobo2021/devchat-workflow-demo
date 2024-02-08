@@ -5,16 +5,8 @@ import time
 import json
 
 # Reuse the GitHub related variables from the context
-# TODO
-# USE YOUR OWN REPO URL
-ISSUE_REPO_URL = "https://github.com/devchat-ai/devchat/issues"
-ISSUE_API_URL = "https://api.github.com/repos/devchat-ai/devchat/issues"
-# TODO
-# USE YOUR OWN ACCESS TOKEN
 GITHUB_ACCESS_TOKEN = "ghp_xxxxxxxxxxx"
-
 GITHUB_API_URL = "https://api.github.com"
-
 
 
 def create_issue(title, body):
@@ -26,7 +18,8 @@ def create_issue(title, body):
         "title": title,
         "body": body,
     }
-    response = requests.post(ISSUE_API_URL, headers=headers, data=json.dumps(data))
+    issue_api_url = f"https://api.github.com/repos/{get_github_repo()}/issues"
+    response = requests.post(issue_api_url, headers=headers, data=json.dumps(data))
 
     if response.status_code == 201:
         print("Issue created successfully!")
@@ -51,7 +44,8 @@ def update_issue_body(issue_url, issue_body):
     }
 
 
-    api_url = f"{ISSUE_API_URL}/{issue_url.split('/')[-1]}"
+    issue_api_url = f"https://api.github.com/repos/{get_github_repo()}/issues"
+    api_url = f"{issue_api_url}/{issue_url.split('/')[-1]}"
     response = requests.patch(api_url, headers=headers, data=json.dumps(data))
     
     if response.status_code == 200:
@@ -118,14 +112,16 @@ def create_and_checkout_branch(branch_name):
 
 
 def is_issue_url(task):
-    return task.strip().startswith(ISSUE_REPO_URL)
+    issue_url = f"https://github.com/{get_github_repo()}/issues"
+    return task.strip().startswith(issue_url)
 
 
 def read_issue_by_url(issue_url):
     issue_number = issue_url.split("/")[-1]
 
     # Construct the API endpoint URL
-    api_url = f"{ISSUE_API_URL}/{issue_number}"
+    issue_api_url = f"https://api.github.com/repos/{get_github_repo()}/issues"
+    api_url = f"{issue_api_url}/{issue_number}"
 
     # Send a GET request to the API endpoint
     headers = {
@@ -214,7 +210,8 @@ def get_parent_branch():
 
 def get_issue_info(issue_id):
     # Construct the API endpoint URL
-    api_url = f"{ISSUE_API_URL}/{issue_id}"
+    issue_api_url = f"https://api.github.com/repos/{get_github_repo()}/issues"
+    api_url = f"{issue_api_url}/{issue_id}"
 
     # Send a GET request to the API endpoint
     headers = {
