@@ -3,9 +3,21 @@ import subprocess
 import requests
 import time
 import json
+import os
+import sys
 
-# Reuse the GitHub related variables from the context
-GITHUB_ACCESS_TOKEN = "ghp_xxxxxxxxxxx"
+
+def read_github_token():
+    config_path = os.path.join(os.path.expanduser("~/.chat/workflows"), ".workflow_config.json")
+    if os.path.exists(config_path):
+        with open(config_path, "r", encoding="utf-8") as f:
+            config_data = json.load(f)
+            if "github_token" in config_data:
+                return config_data["github_token"]
+    return ""
+
+
+GITHUB_ACCESS_TOKEN = read_github_token()
 GITHUB_API_URL = "https://api.github.com"
 
 
@@ -18,7 +30,7 @@ def create_issue(title, body):
         "title": title,
         "body": body,
     }
-    issue_api_url = f"https://api.github.com/repos/{get_github_repo()}/issues"
+    issue_api_url = f"https://api.github.com/repos/{get_github_repo(True)}/issues"
     response = requests.post(issue_api_url, headers=headers, data=json.dumps(data))
 
     if response.status_code == 201:
@@ -44,7 +56,7 @@ def update_issue_body(issue_url, issue_body):
     }
 
 
-    issue_api_url = f"https://api.github.com/repos/{get_github_repo()}/issues"
+    issue_api_url = f"https://api.github.com/repos/{get_github_repo(True)}/issues"
     api_url = f"{issue_api_url}/{issue_url.split('/')[-1]}"
     response = requests.patch(api_url, headers=headers, data=json.dumps(data))
     
@@ -112,7 +124,7 @@ def create_and_checkout_branch(branch_name):
 
 
 def is_issue_url(task):
-    issue_url = f"https://github.com/{get_github_repo()}/issues"
+    issue_url = f"https://github.com/{get_github_repo(True)}/issues"
     return task.strip().startswith(issue_url)
 
 
@@ -120,7 +132,7 @@ def read_issue_by_url(issue_url):
     issue_number = issue_url.split("/")[-1]
 
     # Construct the API endpoint URL
-    issue_api_url = f"https://api.github.com/repos/{get_github_repo()}/issues"
+    issue_api_url = f"https://api.github.com/repos/{get_github_repo(True)}/issues"
     api_url = f"{issue_api_url}/{issue_number}"
 
     # Send a GET request to the API endpoint
@@ -136,8 +148,16 @@ def read_issue_by_url(issue_url):
         return None
 
 
-def get_github_repo():
+def get_github_repo(issue_repo=False):
     try:
+        config_path = os.path.join(os.getcwd(), ".chat", ".workflow_config.json")
+        if os.path.exists(config_path) and issue_repo:
+            with open(config_path, "r", encoding="utf-8") as f:
+                config_data = json.load(f)
+                if "issue_repo" in config_data:
+                    print("current issue repo:", config_data["issue_repo"], end="\n\n", file=sys.stderr, flush=True)
+                    return config_data["issue_repo"]
+
         # 使用git命令获取当前仓库的URL
         result = subprocess.check_output(
             ["git", "remote", "get-url", "origin"], stderr=subprocess.STDOUT
@@ -149,6 +169,7 @@ def get_github_repo():
         repo = parts[-1].replace(".git", "")
         username = parts[-2].split(":")[-1]
         github_repo = f"{username}/{repo}"
+        print("current github repo:", github_repo, end="\n\n", file=sys.stderr, flush=True)
         return github_repo
     except subprocess.CalledProcessError as e:
         print(e)
@@ -210,7 +231,7 @@ def get_parent_branch():
 
 def get_issue_info(issue_id):
     # Construct the API endpoint URL
-    issue_api_url = f"https://api.github.com/repos/{get_github_repo()}/issues"
+    issue_api_url = f"https://api.github.com/repos/{get_github_repo(True)}/issues"
     api_url = f"{issue_api_url}/{issue_id}"
 
     # Send a GET request to the API endpoint
